@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
+<suite name="sample suite" verbose="1" >
+<listeners>
+        <listener class-name="Listeners.TestListener"/>
+    </listeners>
+  <test name="Regression suite" >
+    
+    <classes>
+      <class name="com.automationqapractice.test.CreateUserAccountTest">
+      	<methods>
+      		<include name="createNewUserAccount"/>
+      		<include name="checkThatUserCanLoginSuccessfullyAfterAccountCreation"/>
+      	</methods>
+      </class>
+      
+      <class name="com.automationqapractice.test.SearchProductCategoryTest">
+      	<methods>
+      		<include name="searchProductCategory"/>
+      		<include name="checkIfSneakersAreDisplayedInSearchResults" />
+      	</methods>
+      </class> 
+      
+      <class name="com.automationqapractice.test.OrderCreationTest">
+      	<methods>
+      		<include name="purchaseProduct"/>
+      	</methods>
+	</class>
+      
+    </classes>
+ </test>
+</suite>
