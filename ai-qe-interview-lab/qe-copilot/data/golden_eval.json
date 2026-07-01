@@ -1,0 +1,32 @@
+[
+  {
+    "query": "Pay Now button never becomes visible after switching currency in checkout",
+    "expected_incident": "FLA-001",
+    "expected_category": "flaky-ui"
+  },
+  {
+    "query": "login API returns 500 internal server error instead of 401 for wrong password",
+    "expected_incident": "FLA-002",
+    "expected_category": "product-defect"
+  },
+  {
+    "query": "playwright strict mode error, View button locator resolved to multiple elements",
+    "expected_incident": "FLA-003",
+    "expected_category": "locator-issue"
+  },
+  {
+    "query": "refund stays in PENDING status, test expected REFUNDED immediately",
+    "expected_incident": "FLA-004",
+    "expected_category": "async-timing"
+  },
+  {
+    "query": "connection refused to staging url during nightly pipeline",
+    "expected_incident": "FLA-005",
+    "expected_category": "infra"
+  },
+  {
+    "query": "search endpoint way too slow, breaching response time SLA",
+    "expected_incident": "FLA-006",
+    "expected_category": "product-defect"
+  }
+]

@@ -1,16 +1,17 @@
-"""Simple RAG engine for QE failure knowledge base."""
+"""RAG layer: vector DB (ChromaDB) ingest + semantic retrieval over QE incidents."""
 
 from __future__ import annotations
 
 import json
-import os
+import shutil
 from pathlib import Path
 
 import chromadb
 from chromadb.utils import embedding_functions
 
-DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "failures.json"
-CHROMA_PATH = Path(__file__).resolve().parent.parent / ".chroma"
+ROOT = Path(__file__).resolve().parent.parent
+DATA_PATH = ROOT / "data" / "failures.json"
+CHROMA_PATH = ROOT / ".chroma"
 
 
 def _doc_text(item: dict) -> str:
@@ -29,30 +30,26 @@ def load_failures() -> list[dict]:
 
 def build_collection(reset: bool = False):
     if reset and CHROMA_PATH.exists():
-        import shutil
-
         shutil.rmtree(CHROMA_PATH)
 
     client = chromadb.PersistentClient(path=str(CHROMA_PATH))
-    embedder = embedding_functions.DefaultEmbeddingFunction()
     collection = client.get_or_create_collection(
         name="qe_failures",
-        embedding_function=embedder,
-        metadata={"purpose": "qe-failure-triage-demo"},
+        embedding_function=embedding_functions.DefaultEmbeddingFunction(),
     )
-
     failures = load_failures()
     if collection.count() == 0:
         collection.add(
-            ids=[item["id"] for item in failures],
-            documents=[_doc_text(item) for item in failures],
+            ids=[f["id"] for f in failures],
+            documents=[_doc_text(f) for f in failures],
             metadatas=[
                 {
-                    "test_name": item["test_name"],
-                    "component": item["component"],
-                    "environment": item["environment"],
+                    "test_name": f["test_name"],
+                    "component": f["component"],
+                    "environment": f["environment"],
+                    "category": f["category"],
                 }
-                for item in failures
+                for f in failures
             ],
         )
     return collection
@@ -61,12 +58,13 @@ def build_collection(reset: bool = False):
 def retrieve(query: str, top_k: int = 3) -> list[dict]:
     collection = build_collection()
     result = collection.query(query_texts=[query], n_results=top_k)
-    docs = result.get("documents", [[]])[0]
-    ids = result.get("ids", [[]])[0]
-    metas = result.get("metadatas", [[]])[0]
     return [
-        {"id": ids[i], "document": docs[i], "metadata": metas[i]}
-        for i in range(len(docs))
+        {
+            "id": result["ids"][0][i],
+            "document": result["documents"][0][i],
+            "metadata": result["metadatas"][0][i],
+        }
+        for i in range(len(result["ids"][0]))
     ]
 
 

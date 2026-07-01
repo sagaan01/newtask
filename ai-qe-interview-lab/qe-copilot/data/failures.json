@@ -7,6 +7,7 @@
     "root_cause": "Payment iframe loaded slowly after currency switch; test clicked before iframe ready.",
     "resolution": "Wait for payment iframe network response before clicking Pay Now. Add getByTestId('payment-frame-ready') gate.",
     "component": "checkout",
+    "category": "flaky-ui",
     "tags": ["flaky", "iframe", "payments"]
   },
   {
@@ -17,6 +18,7 @@
     "root_cause": "Auth service regression introduced null pointer on invalid password path.",
     "resolution": "File defect to auth team. Add API contract test for invalid credentials returning 401.",
     "component": "auth",
+    "category": "product-defect",
     "tags": ["api", "regression"]
   },
   {
@@ -27,6 +29,7 @@
     "root_cause": "UI redesign added multiple View buttons without unique accessible names.",
     "resolution": "Request data-testid from dev. Update Page Object to use getByTestId('view-order-{id}').",
     "component": "orders",
+    "category": "locator-issue",
     "tags": ["locator", "ui-change"]
   },
   {
@@ -37,6 +40,7 @@
     "root_cause": "Async refund processing; test asserted final state without polling.",
     "resolution": "Poll refund status endpoint up to 60s with exponential backoff before assertion.",
     "component": "refunds",
+    "category": "async-timing",
     "tags": ["api", "async", "timing"]
   },
   {
@@ -47,6 +51,18 @@
     "root_cause": "Staging environment was down during nightly run; not a product defect.",
     "resolution": "Add pre-flight health check job. Quarantine infra failures from defect metrics.",
     "component": "infra",
+    "category": "infra",
     "tags": ["environment", "infra"]
+  },
+  {
+    "id": "FLA-006",
+    "test_name": "search_products_api_test.py",
+    "error": "Response time 8.4s exceeded SLA of 2s for GET /search?q=shoes",
+    "environment": "staging",
+    "root_cause": "Missing database index after catalog schema migration caused full table scans.",
+    "resolution": "Add index on products.name. Add perf smoke gate for /search in CI.",
+    "component": "search",
+    "category": "product-defect",
+    "tags": ["performance", "api", "database"]
   }
 ]
