@@ -1,0 +1,52 @@
+[
+  {
+    "id": "FLA-001",
+    "test_name": "guest_checkout.feature",
+    "error": "TimeoutError: locator('#pay-now') not visible after 30000ms",
+    "environment": "staging",
+    "root_cause": "Payment iframe loaded slowly after currency switch; test clicked before iframe ready.",
+    "resolution": "Wait for payment iframe network response before clicking Pay Now. Add getByTestId('payment-frame-ready') gate.",
+    "component": "checkout",
+    "tags": ["flaky", "iframe", "payments"]
+  },
+  {
+    "id": "FLA-002",
+    "test_name": "login_invalid_password.spec.ts",
+    "error": "Expected status 401 but received 500",
+    "environment": "ci",
+    "root_cause": "Auth service regression introduced null pointer on invalid password path.",
+    "resolution": "File defect to auth team. Add API contract test for invalid credentials returning 401.",
+    "component": "auth",
+    "tags": ["api", "regression"]
+  },
+  {
+    "id": "FLA-003",
+    "test_name": "order_history_bdd.feature",
+    "error": "Strict mode violation: getByRole('button', { name: 'View' }) resolved to 3 elements",
+    "environment": "staging",
+    "root_cause": "UI redesign added multiple View buttons without unique accessible names.",
+    "resolution": "Request data-testid from dev. Update Page Object to use getByTestId('view-order-{id}').",
+    "component": "orders",
+    "tags": ["locator", "ui-change"]
+  },
+  {
+    "id": "FLA-004",
+    "test_name": "api_create_refund_test.py",
+    "error": "AssertionError: response.json()['status'] == 'REFUNDED' failed, got PENDING",
+    "environment": "qa",
+    "root_cause": "Async refund processing; test asserted final state without polling.",
+    "resolution": "Poll refund status endpoint up to 60s with exponential backoff before assertion.",
+    "component": "refunds",
+    "tags": ["api", "async", "timing"]
+  },
+  {
+    "id": "FLA-005",
+    "test_name": "smoke_homepage_load.spec.ts",
+    "error": "net::ERR_CONNECTION_REFUSED at https://app.staging.example.com",
+    "environment": "ci",
+    "root_cause": "Staging environment was down during nightly run; not a product defect.",
+    "resolution": "Add pre-flight health check job. Quarantine infra failures from defect metrics.",
+    "component": "infra",
+    "tags": ["environment", "infra"]
+  }
+]
