@@ -1,0 +1,23 @@
+{
+  "description": "Allowlisted API surface. AI-generated tests may ONLY reference these endpoints and fields.",
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/orders",
+      "request_fields": ["email", "total"],
+      "response_fields": ["id", "email", "total", "status", "error"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/orders/{id}",
+      "request_fields": [],
+      "response_fields": ["id", "email", "total", "status", "error"]
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "request_fields": [],
+      "response_fields": ["status"]
+    }
+  ]
+}

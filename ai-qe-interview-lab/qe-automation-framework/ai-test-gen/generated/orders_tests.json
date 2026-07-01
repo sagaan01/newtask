@@ -1,0 +1,65 @@
+[
+  {
+    "name": "health_ok",
+    "method": "GET",
+    "path": "/health",
+    "payload": null,
+    "expected_status": 200,
+    "expected_fields": ["status"],
+    "path_id_from": null
+  },
+  {
+    "name": "create_valid_order",
+    "method": "POST",
+    "path": "/api/orders",
+    "payload": { "email": "gen@example.com", "total": 25.5 },
+    "expected_status": 201,
+    "expected_fields": ["id", "email", "total", "status"],
+    "path_id_from": null
+  },
+  {
+    "name": "create_order_missing_email",
+    "method": "POST",
+    "path": "/api/orders",
+    "payload": { "total": 25.5 },
+    "expected_status": 400,
+    "expected_fields": ["error"],
+    "path_id_from": null
+  },
+  {
+    "name": "create_order_invalid_email",
+    "method": "POST",
+    "path": "/api/orders",
+    "payload": { "email": "no-at-sign", "total": 10 },
+    "expected_status": 400,
+    "expected_fields": ["error"],
+    "path_id_from": null
+  },
+  {
+    "name": "create_order_zero_total",
+    "method": "POST",
+    "path": "/api/orders",
+    "payload": { "email": "gen@example.com", "total": 0 },
+    "expected_status": 400,
+    "expected_fields": ["error"],
+    "path_id_from": null
+  },
+  {
+    "name": "get_created_order",
+    "method": "GET",
+    "path": "/api/orders/{id}",
+    "payload": null,
+    "expected_status": 200,
+    "expected_fields": ["id", "email", "total", "status"],
+    "path_id_from": "create_valid_order"
+  },
+  {
+    "name": "get_unknown_order_404",
+    "method": "GET",
+    "path": "/api/orders/{id}",
+    "payload": null,
+    "expected_status": 404,
+    "expected_fields": ["error"],
+    "path_id_from": null
+  }
+]

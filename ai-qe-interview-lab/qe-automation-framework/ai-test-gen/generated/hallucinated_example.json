@@ -1,0 +1,29 @@
+[
+  {
+    "name": "apply_discount_coupon",
+    "method": "POST",
+    "path": "/api/coupons/apply",
+    "payload": { "code": "SAVE20" },
+    "expected_status": 200,
+    "expected_fields": ["discount"],
+    "path_id_from": null
+  },
+  {
+    "name": "delete_order",
+    "method": "DELETE",
+    "path": "/api/orders/{id}",
+    "payload": null,
+    "expected_status": 204,
+    "expected_fields": null,
+    "path_id_from": null
+  },
+  {
+    "name": "create_order_with_invented_field",
+    "method": "POST",
+    "path": "/api/orders",
+    "payload": { "email": "x@example.com", "total": 5, "giftWrap": true },
+    "expected_status": 201,
+    "expected_fields": ["id"],
+    "path_id_from": null
+  }
+]

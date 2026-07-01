@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mini Shop Checkout</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 3rem auto; }
+    input { padding: 0.5rem; width: 100%; margin: 0.5rem 0; box-sizing: border-box; }
+    button { padding: 0.6rem 1.4rem; background: #1a73e8; color: #fff; border: 0; border-radius: 4px; cursor: pointer; }
+    .error { color: #c5221f; }
+    .success { color: #188038; }
+    [hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Mini Shop Checkout</h1>
+  <p>Cart total: <strong data-testid="cart-total">$49.99</strong></p>
+
+  <label for="email">Email</label>
+  <input id="email" type="email" data-testid="email-input" placeholder="you@example.com" />
+
+  <button data-testid="pay-now">Pay Now</button>
+
+  <p class="error" data-testid="email-error" hidden>Email is required</p>
+  <p class="success" data-testid="order-confirmation" hidden>
+    Thank you! Order <span data-testid="order-id"></span> confirmed.
+  </p>
+
+  <script>
+    document.querySelector('[data-testid="pay-now"]').addEventListener('click', async () => {
+      const email = document.querySelector('[data-testid="email-input"]').value.trim();
+      const errorEl = document.querySelector('[data-testid="email-error"]');
+      const confirmEl = document.querySelector('[data-testid="order-confirmation"]');
+      errorEl.hidden = true;
+      confirmEl.hidden = true;
+
+      if (!email) {
+        errorEl.hidden = false;
+        return;
+      }
+
+      const resp = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, total: 49.99 }),
+      });
+
+      if (resp.status === 201) {
+        const order = await resp.json();
+        document.querySelector('[data-testid="order-id"]').textContent = order.id;
+        confirmEl.hidden = false;
+      } else {
+        errorEl.hidden = false;
+      }
+    });
+  </script>
+</body>
+</html>
