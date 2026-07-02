@@ -1,0 +1,171 @@
+name: AI QE Platform Pipeline
+
+on:
+  push:
+    branches: ["cursor/**"]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  api-tests:
+    name: API contract tests (PyTest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install pytest requests
+      - name: Run API test suite
+        working-directory: ai-qe-interview-lab/qe-automation-framework
+        run: python -m pytest api-tests -v
+
+  ui-bdd-tests:
+    name: UI BDD tests (Playwright + Cucumber)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        working-directory: ai-qe-interview-lab/qe-automation-framework/ui-tests
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Start app under test
+        working-directory: ai-qe-interview-lab/qe-automation-framework
+        run: |
+          python3 app/server.py --port 8787 &
+          for i in $(seq 1 30); do curl -sf http://localhost:8787/health && break || sleep 1; done
+      - name: Run BDD scenarios
+        working-directory: ai-qe-interview-lab/qe-automation-framework/ui-tests
+        run: npm test
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-failure-screenshots
+          path: ai-qe-interview-lab/qe-automation-framework/ui-tests/reports/
+          if-no-files-found: ignore
+
+  typescript-concepts:
+    name: TypeScript typecheck + Playwright tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        working-directory: ai-qe-interview-lab/typescript-playwright-concepts
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Type check (compile-time quality gate)
+        working-directory: ai-qe-interview-lab/typescript-playwright-concepts
+        run: npm run typecheck
+      - name: Run tests (webServer auto-starts the app)
+        working-directory: ai-qe-interview-lab/typescript-playwright-concepts
+        run: npm test
+
+  ai-testgen-validation:
+    name: AI-generated test assets (two-gate validation)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install requests
+      - name: Valid batch must pass both gates
+        working-directory: ai-qe-interview-lab/qe-automation-framework/ai-test-gen
+        run: python validate_generated.py generated/orders_tests.json
+      - name: Hallucinated batch must be REJECTED (exit 2)
+        working-directory: ai-qe-interview-lab/qe-automation-framework/ai-test-gen
+        run: |
+          set +e
+          python validate_generated.py generated/hallucinated_example.json
+          code=$?
+          set -e
+          if [ "$code" -ne 2 ]; then
+            echo "Governance failure: expected schema-gate rejection (exit 2), got $code"
+            exit 1
+          fi
+          echo "Schema gate correctly rejected hallucinated assets."
+
+  ai-eval-gate:
+    name: AI quality gate (golden-set eval)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install chromadb
+      - name: Run golden-set evaluation (blocks on regression)
+        working-directory: ai-qe-interview-lab/qe-copilot
+        run: python src/evaluate.py
+
+  ml-model-gate:
+    name: ML pipeline (train + champion/challenger gate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install scikit-learn pandas joblib
+      - name: Data pipeline
+        working-directory: ai-qe-interview-lab/ml-qe-pipeline/src
+        run: python generate_data.py
+      - name: Train candidate model
+        working-directory: ai-qe-interview-lab/ml-qe-pipeline/src
+        run: python train.py
+      - name: Evaluation gate (promote or reject)
+        working-directory: ai-qe-interview-lab/ml-qe-pipeline/src
+        run: python evaluate.py
+      - name: Upload model registry
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-registry
+          path: ai-qe-interview-lab/ml-qe-pipeline/models/registry.json
+
+  quality-report:
+    name: Aggregated quality report
+    runs-on: ubuntu-latest
+    needs:
+      [
+        api-tests,
+        ui-bdd-tests,
+        typescript-concepts,
+        ai-testgen-validation,
+        ai-eval-gate,
+        ml-model-gate,
+      ]
+    if: always()
+    steps:
+      - name: Publish summary
+        run: |
+          {
+            echo "## AI QE Platform - Pipeline Summary"
+            echo ""
+            echo "| Gate | Result |"
+            echo "|---|---|"
+            echo "| API contract tests | ${{ needs.api-tests.result }} |"
+            echo "| UI BDD tests | ${{ needs.ui-bdd-tests.result }} |"
+            echo "| TypeScript typecheck + tests | ${{ needs.typescript-concepts.result }} |"
+            echo "| AI test-gen validation | ${{ needs.ai-testgen-validation.result }} |"
+            echo "| AI golden-set eval gate | ${{ needs.ai-eval-gate.result }} |"
+            echo "| ML champion/challenger gate | ${{ needs.ml-model-gate.result }} |"
+            echo ""
+            echo "All gates are deterministic. AI components are tested with the same rigor as code."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Enforce all gates green
+        if: contains(needs.*.result, 'failure')
+        run: exit 1
