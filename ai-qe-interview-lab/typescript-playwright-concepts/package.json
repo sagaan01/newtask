@@ -1,0 +1,14 @@
+{
+  "name": "typescript-playwright-concepts",
+  "private": true,
+  "description": "Every core TypeScript concept demonstrated inside real Playwright tests",
+  "scripts": {
+    "test": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0"
+  }
+}

@@ -1,0 +1,75 @@
+// Jenkins equivalent of .github/workflows/qe-pipeline.yml
+// Reference implementation - demonstrates the same gates in declarative Jenkins syntax.
+
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        timeout(time: 30, unit: 'MINUTES')
+    }
+
+    stages {
+        stage('Parallel quality gates') {
+            parallel {
+                stage('API contract tests') {
+                    steps {
+                        dir('ai-qe-interview-lab/qe-automation-framework') {
+                            sh 'pip install pytest requests && python -m pytest api-tests -v --junitxml=api-results.xml'
+                        }
+                    }
+                    post { always { junit 'ai-qe-interview-lab/qe-automation-framework/api-results.xml' } }
+                }
+                stage('UI BDD tests') {
+                    steps {
+                        dir('ai-qe-interview-lab/qe-automation-framework') {
+                            sh '''
+                                python3 app/server.py --port 8787 &
+                                cd ui-tests && npm ci && npx playwright install --with-deps chromium
+                                npm test
+                            '''
+                        }
+                    }
+                }
+                stage('AI eval gate') {
+                    steps {
+                        dir('ai-qe-interview-lab/qe-copilot') {
+                            sh 'pip install chromadb && python src/evaluate.py'
+                        }
+                    }
+                }
+                stage('ML model gate') {
+                    steps {
+                        dir('ai-qe-interview-lab/ml-qe-pipeline/src') {
+                            sh '''
+                                pip install scikit-learn pandas joblib
+                                python generate_data.py && python train.py && python evaluate.py
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+        stage('AI test-gen governance') {
+            steps {
+                dir('ai-qe-interview-lab/qe-automation-framework/ai-test-gen') {
+                    sh '''
+                        python validate_generated.py generated/orders_tests.json
+                        # hallucinated batch MUST be rejected with exit 2
+                        set +e
+                        python validate_generated.py generated/hallucinated_example.json
+                        code=$?
+                        set -e
+                        [ "$code" -eq 2 ] || { echo "governance failure"; exit 1; }
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'ai-qe-interview-lab/ml-qe-pipeline/models/registry.json', allowEmptyArchive: true
+        }
+    }
+}

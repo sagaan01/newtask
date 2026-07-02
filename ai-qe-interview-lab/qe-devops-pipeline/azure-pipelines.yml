@@ -1,0 +1,74 @@
+# Azure DevOps equivalent of .github/workflows/qe-pipeline.yml
+# Reference implementation - same gates, Azure Pipelines syntax.
+
+trigger:
+  branches:
+    include: [master, cursor/*]
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: QualityGates
+    jobs:
+      - job: ApiTests
+        displayName: API contract tests
+        steps:
+          - task: UsePythonVersion@0
+            inputs: { versionSpec: "3.12" }
+          - script: pip install pytest requests
+          - script: python -m pytest api-tests -v --junitxml=$(Build.ArtifactStagingDirectory)/api-results.xml
+            workingDirectory: ai-qe-interview-lab/qe-automation-framework
+          - task: PublishTestResults@2
+            condition: always()
+            inputs:
+              testResultsFiles: "$(Build.ArtifactStagingDirectory)/api-results.xml"
+
+      - job: UiBddTests
+        displayName: UI BDD tests (Playwright + Cucumber)
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: "20.x" }
+          - script: |
+              python3 app/server.py --port 8787 &
+              cd ui-tests
+              npm ci && npx playwright install --with-deps chromium
+              npm test
+            workingDirectory: ai-qe-interview-lab/qe-automation-framework
+
+      - job: AiEvalGate
+        displayName: AI golden-set eval gate
+        steps:
+          - task: UsePythonVersion@0
+            inputs: { versionSpec: "3.12" }
+          - script: pip install chromadb
+          - script: python src/evaluate.py
+            workingDirectory: ai-qe-interview-lab/qe-copilot
+
+      - job: MlModelGate
+        displayName: ML champion/challenger gate
+        steps:
+          - task: UsePythonVersion@0
+            inputs: { versionSpec: "3.12" }
+          - script: pip install scikit-learn pandas joblib
+          - script: |
+              python generate_data.py && python train.py && python evaluate.py
+            workingDirectory: ai-qe-interview-lab/ml-qe-pipeline/src
+          - publish: ai-qe-interview-lab/ml-qe-pipeline/models/registry.json
+            artifact: model-registry
+            condition: succeededOrFailed()
+
+      - job: AiTestGenGovernance
+        displayName: AI test-gen two-gate validation
+        steps:
+          - task: UsePythonVersion@0
+            inputs: { versionSpec: "3.12" }
+          - script: pip install requests
+          - script: |
+              python validate_generated.py generated/orders_tests.json
+              set +e
+              python validate_generated.py generated/hallucinated_example.json
+              code=$?
+              set -e
+              if [ "$code" -ne 2 ]; then echo "governance failure"; exit 1; fi
+            workingDirectory: ai-qe-interview-lab/qe-automation-framework/ai-test-gen

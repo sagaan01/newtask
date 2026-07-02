@@ -1,0 +1,14 @@
+# QE Copilot - unified AI/LLM/Agentic QE project
+# Covers: LLMs, prompt engineering, RAG, vector DB, model evaluation,
+# LangChain, HuggingFace Transformers, OpenAI/Ollama, LangGraph, MCP, CI decisions.
+
+chromadb>=0.5.0            # vector DB for RAG
+langchain-core>=0.3.0      # prompt templates (LangChain)
+langgraph>=0.2.0           # agentic workflow orchestration
+transformers>=4.40.0       # HuggingFace zero-shot failure classifier
+openai>=1.30.0             # OpenAI API client (also works with Ollama base_url)
+mcp[cli]>=1.0.0            # MCP server exposing triage tools
+python-dotenv>=1.0.0
+
+# torch is required by transformers; install the small CPU wheel:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu

@@ -1,0 +1,16 @@
+{
+  "name": "qe-ui-tests",
+  "private": true,
+  "description": "BDD UI automation: Cucumber + Playwright + TypeScript + Page Object Model",
+  "scripts": {
+    "test": "cucumber-js",
+    "test:smoke": "cucumber-js --tags @smoke"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^11.0.0",
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.0"
+  }
+}
